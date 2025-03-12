@@ -6,41 +6,44 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000; // Ensure this uses Render's assigned port
 
-// Enable CORS (Allows frontend to access backend)
 app.use(cors());
 
-// TMDB API Configuration
-const TMDB_API_KEY = process.env.EXPO_PUBLIC_MOVIE_API_KEY; // Ensure this is set in .env
+const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
-// Proxy Route for Searching Movies
-app.get("/movies", async (req, res) => {
-  const { query } = req.query;
-  const endpoint = query
-    ? `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
-    : `${TMDB_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+if (!TMDB_API_KEY) {
+  console.error("❌ TMDB_API_KEY is missing! Set it in .env or Render.");
+}
 
+app.get("/movies", async (req, res) => {
   try {
+    const { query } = req.query;
+    const endpoint = query
+      ? `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+      : `${TMDB_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+
     const response = await fetch(endpoint, {
       method: "GET",
       headers: {
         accept: "application/json",
-        Authorization: `Bearer ${TMDB_API_KEY}`, // Use the Bearer token authentication
+        Authorization: `Bearer ${TMDB_API_KEY}`,
       },
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: "Failed to fetch movies" });
+      console.error(`❌ TMDB API Error: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({ error: "Failed to fetch movies from TMDB" });
     }
 
     const data = await response.json();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movies" });
+    console.error("❌ Error in backend:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Start Server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Explicitly bind to the port Render provides
+app.listen(PORT, "0.0.0.0", () => console.log(`✅ Server running on port ${PORT}`));
