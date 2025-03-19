@@ -45,5 +45,32 @@ app.get("/movies", async (req, res) => {
   }
 });
 
+app.get("/movies/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const endpoint = `${TMDB_BASE_URL}/movie/${id}`;
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${TMDB_API_KEY}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`❌ TMDB API Error: ${response.status} ${response.statusText}`);
+      return res.status(response.status).json({ error: "Failed to fetch movie details from TMDB" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("❌ Error fetching movie details:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 // Explicitly bind to the port Render provides
 app.listen(PORT, "0.0.0.0", () => console.log(`✅ Server running on port ${PORT}`));
